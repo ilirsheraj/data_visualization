@@ -1,0 +1,360 @@
+---
+title: "week2"
+author: "Ilir_Sheraj"
+date: "8/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Basics of *ggplot*
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(dslabs)
+data("murders")
+```
+
+Three main components:
+
+1 - Data: The dataset being summarized
+
+2 - Geometry: The type of plot (scatterplot, boxplot, barplot, histogram, qqplot, smooth density, etc.)
+
+3 - Aesthetic mapping: Variables mapped to visual cues, such as x-axis and y-axis values and color
+
+Other Components
+
+1 - Scale
+
+2 - Labels, Title, Legend
+
+3 - Theme/Style
+
+```{r}
+p <- murders %>% ggplot()
+class(p)
+```
+
+# Customizing Plots
+
+```{r}
+data("murders")
+murders %>% ggplot() +
+  geom_point(aes(x = population/10^6, y = total))
+```
+
+Do the same by adding a new layer to p defined before
+
+```{r}
+p + geom_point(aes(x = population/10^6, y = total))
+```
+
+```{r}
+murders %>% ggplot() +
+  geom_point(aes(x = population/10^6, y = total)) +
+  geom_text(aes(x = population/10^6, y = total, label = abb))
+```
+
+```{r}
+murders %>% ggplot() +
+  geom_point(aes(x = population/10^6, y = total), size = 3) +
+  geom_text(aes(x = population/10^6, y = total, label = abb))
+```
+
+```{r}
+murders %>% ggplot() +
+  geom_point(aes(x = population/10^6, y = total), size = 3) +
+  geom_text(aes(x = population/10^6, y = total, label = abb), nudge_x = 1)
+```
+
+Global definition inside ggplot()
+```{r}
+p <- murders %>% ggplot(aes(x = population/10^6, y = total, label = abb))
+p + geom_point(size = 3) +
+  geom_text(nudge_x = 1)
+```
+
+Local Mapping overrites the global one
+
+```{r}
+p + geom_point(size = 3)+
+  geom_text(aes(x = 10, y = 800, label = "Hello There"))
+```
+
+## Scales, Labels and Colors
+
+```{r}
+p + geom_point(size = 3) +
+  geom_text(nudge_x = 0.075) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10")
+```
+
+```{r}
+p + geom_point(size = 3) +
+  geom_text(nudge_x = 0.075) +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+```{r}
+p + geom_point(size = 3) +
+  geom_text(nudge_x = 0.075) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  xlab("Populations in Millions (log scale)") +
+  ylab("Total Number of Murders (log scale)") +
+  ggtitle("US Gun Murders in US 2010")
+```
+
+Re-define p
+
+```{r}
+p <- murders %>% ggplot(aes(x = population/10^6, y = total, label = abb)) +
+  geom_point(size = 3) +
+  geom_text(nudge_x = 0.075) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  xlab("Populations in Millions (log scale)") +
+  ylab("Total Number of Murders (log scale)") +
+  ggtitle("US Gun Murders in US 2010")
+```
+
+```{r}
+p + geom_point(size = 3, color = "blue")
+```
+
+```{r}
+p + geom_point(aes(col = region), size = 3)
+```
+
+```{r}
+r <- murders %>% 
+  summarize(rate = sum(total)/sum(population)*10^6) %>% .$rate
+p + geom_point(aes(col = region), size = 3) +
+  geom_abline(intercept = log10(r))
+```
+
+```{r}
+p <- p + geom_abline(intercept = log10(r), lty = 2, color = "darkgrey") +
+  geom_point(aes(col = region), size = 3)
+p
+```
+
+Capitalize region 
+
+```{r}
+p + scale_color_discrete(name = "Region")
+```
+
+```{r}
+library(ggthemes)
+library(ggrepel)
+p + scale_color_discrete(name = "Region") +
+  ds_theme_set()
+```
+
+```{r}
+p + scale_color_discrete(name = "Region") +
+  theme_economist()
+```
+
+```{r}
+p + scale_color_discrete(name = "Region") +
+  theme_fivethirtyeight()
+```
+
+```{r}
+murders %>%
+    ggplot(aes(population/10^6, total, label = abb)) +
+    geom_abline(intercept = log10(r), lty = 2, color = "darkgrey") +
+    geom_point(aes(col = region), size = 3) +
+    geom_text_repel() +
+    scale_x_log10() +
+    scale_y_log10() +
+    xlab("Population in millions (log scale)") +
+    ylab("Total number of murders (log scale)") +
+    ggtitle("US Gun Murders in 2010") +
+    scale_color_discrete(name = "Region") +
+    theme_economist()
+```
+
+# Other Plots
+
+```{r}
+heights %>% 
+  filter(sex == "Male") %>% 
+  ggplot(aes(height)) +
+  geom_histogram(binwidth = 1)
+```
+
+```{r}
+heights %>% 
+  filter(sex == "Male") %>% 
+  ggplot(aes(height)) +
+  geom_histogram(binwidth = 1, fill = "blue", col = "black") +
+  xlab("Male Heights in Inches") +
+  ggtitle("Histogram")
+```
+
+```{r}
+p <- heights %>% 
+  filter(sex == "Male") %>% 
+  ggplot(aes(height))
+p + geom_density(fill = "blue")
+```
+
+```{r}
+heights %>% 
+  filter(sex == "Male") %>% 
+  ggplot(aes(sample = height)) +
+  geom_qq() +
+  geom_qq_line()
+```
+
+```{r}
+params <- heights %>% 
+  filter(sex == "Male") %>% 
+  summarize(mean = mean(height), sd = sd(height))
+heights %>%  
+  filter(sex == "Male") %>% 
+  ggplot(aes(sample = height)) +
+  geom_qq(dparams = params) +
+  geom_qq_line(dparams = params)
+```
+
+Even simpler for standardized
+
+```{r}
+heights %>% 
+  filter(sex == "Male") %>% 
+  ggplot(aes(sample = scale(height))) +
+  geom_qq() +
+  geom_qq_line()
+```
+
+Grids of Plots
+
+```{r}
+library(gridExtra)
+p <- heights %>% filter(sex == "Male") %>% ggplot(aes(x = height))
+p1 <- p + geom_histogram(binwidth = 1, fill = "blue", col = "black")
+p2 <- p + geom_histogram(binwidth = 2, fill = "blue", col = "black")
+p3 <- p + geom_histogram(binwidth = 3, fill = "blue", col = "black")
+grid.arrange(p1, p2, p3, ncol = 3)
+```
+
+# Asessment
+
+```{r}
+data(heights)
+data(murders)
+p <- ggplot(murders)
+class(p)
+```
+
+Using the pipe %>%, create an object p associated with the heights dataset 
+
+```{r}
+p <- heights %>% ggplot()
+```
+
+To create a scatter plot, we add a layer with the function geom_point. The aesthetic mappings require us to define the x-axis and y-axis variables respectively. So the code looks like this:
+
+```{r}
+murders %>% ggplot(aes(x = population, y = total)) +
+  geom_point()
+```
+
+Add label using geom_label()
+
+```{r}
+murders %>% ggplot(aes(population, total, label = abb)) +
+  geom_point() +
+  geom_label()
+```
+
+Change label color into blue
+
+```{r}
+murders %>% ggplot(aes(population, total, label = abb)) +
+  geom_point() +
+  geom_label(color = "blue")
+```
+
+Rewrite the code above to make the label color correspond to the state's region. Because this is a mapping, you will have to do this through the aes function. Use the existing aes function inside of the ggplot function.
+
+```{r}
+murders %>% ggplot(aes(population, total, label = abb, color= region)) +
+  geom_label()
+```
+
+Now we are going to change the axes to log scales to account for the fact that the population distribution is skewed. Let's start by defining an object p that holds the plot we have made up to now. Change both axes to be in the log scale on a single graph.
+
+```{r}
+p <- murders %>% ggplot(aes(population, total, label = abb, color = region)) +
+  geom_label()
+p + scale_x_log10() +
+  scale_y_log10()
+```
+
+Edit the code above to add the title "Gun murder data" to the plot.
+
+```{r}
+p + scale_x_log10() +
+  scale_y_log10() +
+  ggtitle("Gun murder data")
+```
+
+We are going to shift our focus from the murders dataset to explore the heights dataset. We use the geom_histogram function to make a histogram of the heights in the heights data frame. When reading the documentation for this function we see that it requires just one mapping, the values to be used for the histogram. What is the variable containing the heights in inches in the heights data frame?
+
+```{r}
+p <- heights %>% 
+  ggplot(aes(height))
+```
+
+Add a layer to the object p (created in the previous exercise) using the geom_histogram function to make the histogram.
+
+```{r}
+p + geom_histogram()
+```
+
+Use the binwidth argument to change the histogram made in the previous exercise to use bins of size 1 inch.
+
+```{r}
+p + geom_histogram(binwidth = 1)
+```
+
+Now instead of a histogram we are going to make a smooth density plot. In this case, we will not make an object p. Instead we will render the plot using a single line of code. In the previous exercise, we could have created a histogram using one line of code above. Now instead of geom_histogram we will use geom_density to create a smooth density plot.
+
+```{r}
+p + geom_density()
+```
+
+Now we are going to make density plots for males and females separately. We can do this using the group argument within the aes mapping. Because each point will be assigned to a different density depending on a variable from the dataset, we need to map within aes. Create separate smooth density plots for males and females by defining group by sex. Use the existing aes function inside of the ggplot function.
+
+```{r}
+heights %>% 
+  ggplot(aes(height, group = sex)) +
+  geom_density()
+```
+
+We can also assign groups through the color or fill argument. For example, if you type color = sex ggplot knows you want a different color for each sex. So two densities must be drawn. You can therefore skip the group = sex mapping. Using color has the added benefit that it uses color to distinguish the groups.
+
+```{r}
+heights %>% 
+  ggplot(aes(height, color = sex)) +
+  geom_density()
+```
+
+We can also assign groups using the fill argument. When using the geom_density geometry, color creates a colored line for the smooth density plot while fill colors in the area under the curve. Set the alpha parameter to 0.2 in the geom_density function to make this change.
+
+```{r}
+heights %>% 
+  ggplot(aes(height, fill = sex)) +
+  geom_density(alpha = 0.2)
+```

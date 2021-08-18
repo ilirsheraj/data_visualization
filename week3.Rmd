@@ -1,0 +1,191 @@
+---
+title: "week3"
+author: "Ilir_Sheraj"
+date: "8/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summarizing Data with dplyr
+
+```{r}
+library(tidyverse)
+library(dslabs)
+data("heights")
+```
+
+```{r}
+s <- heights %>%
+    filter(sex == "Male") %>%
+    summarize(average = mean(height), standard_deviation = sd(height))
+s
+```
+
+```{r}
+s$average
+s$standard_deviation
+```
+
+```{r}
+heights %>%
+    filter(sex == "Male") %>%
+    summarize(median = median(height),
+              minimum = min(height),
+              maximum = max(height))
+```
+
+Another way to get minimum, median and maximum
+
+```{r}
+quantile(heights$height, c(0, 0.5, 1))
+```
+
+# The Dot Placeholder
+
+```{r}
+us_murder_rate <- murders %>% 
+  summarize(rate = sum(total)/sum(population) * 100000)
+us_murder_rate
+```
+
+```{r}
+us_murder_rate %>% .$rate
+```
+
+```{r}
+us_murder_rate <- murders %>% 
+  summarize(rate = sum(total)/sum(population) * 100000) %>% 
+  .$rate
+us_murder_rate
+```
+
+# Group By
+
+```{r}
+heights %>% group_by(sex) %>% 
+  summarize(average = mean(height), standard_deviation = sd(height))
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  group_by(region) %>% 
+  summarize(median_rate = median(murder_rate))
+```
+
+# Sorting Data Tables
+
+```{r}
+murders %>% arrange(population) %>% head()
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  arrange(murder_rate) %>% head()
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  arrange(desc(murder_rate)) %>% head()
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  arrange(region, murder_rate) %>% head()
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  arrange(region, murder_rate) %>% tail()
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  top_n(10, murder_rate)
+```
+
+```{r}
+murders %>% mutate(murder_rate = total/population * 100000) %>% 
+  arrange(desc(murder_rate)) %>% top_n(10)
+```
+
+# Assessment
+
+To practice our dplyr skills we will be working with data from the survey collected by the United States National Center for Health Statistics (NCHS). This center has conducted a series of health and nutrition surveys since the 1960’s. Starting in 1999, about 5,000 individuals of all ages have been interviewed every year and then they complete the health examination component of the survey. Part of this dataset is made available via the NHANES package
+
+```{r}
+library(NHANES)
+data("NHANES")
+dim(NHANES)
+```
+
+```{r}
+str(NHANES)
+```
+
+Let's explore the NHANES data. We will be exploring blood pressure in this dataset. First let's select a group to set the standard. We will use 20-29 year old females. Note that the category is coded with 20-29, with a space in front of the 20! The AgeDecade is a categorical variable with these ages. To know if someone is female, you can look at the Gender variable.
+Filter the NHANES dataset so that only 20-29 year old females are included and assign this new data frame to the object tab. Use the pipe to apply the function filter, with the appropriate logicals, to NHANES. Remember that this age group is coded with 20-29, which includes a space. You can use head to explore the NHANES table to construct the correct call to filter.
+
+```{r}
+tab <- NHANES %>% filter(Gender == "female" & AgeDecade == " 20-29")
+dim(tab)
+```
+
+Now we will compute the average and standard deviation for the subgroup we defined in the previous exercise (20-29 year old females), which we will use reference for what is typical. You will determine the average and standard deviation of systolic blood pressure, which are stored in the BPSysAve variable in the NHANES dataset. Complete the line of code to save the average and standard deviation of systolic blood pressure as average and standard_deviation to a variable called ref. Use the summarize function after filtering for 20-29 year old females and connect the results using the pipe %>%. When doing this remember there are NAs in the data!
+
+```{r}
+ref <- NHANES %>% filter(Gender == "female" & AgeDecade == " 20-29") %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE))
+ref
+```
+
+Modify the line of sample code to assign the average to a numeric variable called ref_avg using the . or pull.
+
+```{r}
+ref_avg <- NHANES %>% filter(Gender == "female" & AgeDecade == " 20-29") %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE)) %>% 
+  .$average
+ref_avg
+```
+
+Report the min and max values for the same group as in the previous exercises. Use filter and summarize connected by the pipe %>% again. The functions min and max can be used to get the values you want. Within summarize, save the min and max of systolic blood pressure as minbp and maxbp.
+
+```{r}
+NHANES %>% filter(Gender == "female" & AgeDecade == " 20-29") %>% 
+  summarize(minbp = min(BPSysAve, na.rm = TRUE), maxbp = max(BPSysAve, na.rm = TRUE))
+```
+
+Now let's practice using the group_by function. What we are about to do is a very common operation in data science: you will split a data table into groups and then compute summary statistics for each group. We will compute the average and standard deviation of systolic blood pressure for females for each age group separately. Remember that the age groups are contained in AgeDecade.
+Use the functions filter, group_by, summarize, and the pipe %>% to compute the average and standard deviation of systolic blood pressure for females for each age group separately. Within summarize, save the average and standard deviation of systolic blood pressure (BPSysAve) as average and standard_deviation.
+
+```{r}
+NHANES %>% filter(Gender == "female") %>% 
+  group_by(AgeDecade) %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE))
+```
+
+Now let's practice using group_by some more. We are going to repeat the previous exercise of calculating the average and standard deviation of systolic blood pressure, but for males instead of females.
+
+```{r}
+NHANES %>% filter(Gender == "male") %>% 
+  group_by(AgeDecade) %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE))
+```
+
+We can actually combine both of these summaries into a single line of code. This is because group_by permits us to group by more than one variable. Create a single summary table for the average and standard deviation of systolic blood pressure using group_by(AgeDecade, Gender). Your code within summarize should remain the same as in the previous exercises.
+
+```{r}
+NHANES %>% group_by(AgeDecade, Gender) %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE))
+```
+
+Now we are going to explore differences in systolic blood pressure across races, as reported in the Race1 variable. We will learn to use the arrange function to order the outcome acording to one variable. Compute the average and standard deviation for each value of Race1 for males in the age decade 40-49. Order the resulting table from lowest to highest average systolic blood pressure. Use the functions filter, group_by, summarize, arrange, and the pipe %>% to do this in one line of code. Within summarize, save the average and standard deviation of systolic blood pressure as average and standard_deviation.
+
+```{r}
+NHANES %>% filter(Gender == "male" & AgeDecade == " 40-49") %>% 
+  group_by(Race1) %>% 
+  summarize(average = mean(BPSysAve, na.rm = TRUE), standard_deviation = sd(BPSysAve, na.rm = TRUE)) %>% 
+  arrange(average)
+```

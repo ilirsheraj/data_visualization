@@ -1,0 +1,380 @@
+---
+title: "week1"
+author: "Ilir_Sheraj"
+date: "8/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Distributions
+
+```{r}
+library(dslabs)
+data("heights")
+prop.table(table(heights$sex))
+```
+
+The Cummulative Distribution Function (CDF): F(a) = Pr(x <= a)
+
+```{r}
+library(ggplot2)
+ggplot(heights, aes(height)) + stat_ecdf(geom = "step") + theme_bw()
+```
+
+```{r}
+ggplot(heights, aes(height)) + geom_histogram(binwidth = 1) + theme_bw()
+```
+
+More on CDF
+
+```{r}
+my_data <- heights$height
+a <- seq(min(my_data), max(my_data), length = 100)    # define range of values spanning the dataset
+cdf_function <- function(x){
+  mean(my_data <= x)
+}
+cdf_values <- sapply(a, cdf_function)
+plot(a, cdf_values)
+```
+
+# Normal Distribution
+
+ave <- sum(x)/len(x)
+SD <- sqrt(sum((x - ave)^2)/ length(x))
+
+```{r}
+index <- heights$sex == "Male"
+x <- heights$height[index]
+average <- round(mean(x),2)
+SD <- round(sd(x),2)
+c(average = average, SD = SD)
+```
+
+We can get standard units using the function scale
+
+```{r}
+z <- scale(x)
+mean(abs(z) < 2)
+```
+
+# Theoretical Distribution
+
+Normal CDF can be obtained by pnorm(): F(a) = pnorm(a, avg, sd)
+
+```{r}
+1 - pnorm(70.5, mean(x), sd(x))
+```
+
+```{r}
+plot(prop.table(table(x)), xlab = "a = height in inches", ylab = "Pr(x = a)")
+```
+
+```{r}
+mean(x <= 68.5) - mean(x <= 67.5)
+```
+
+```{r}
+pnorm(68.5, mean(x), sd(x)) - pnorm(67.5, mean(x), sd(x))
+```
+
+```{r}
+mean(x <= 69.5) - mean(x <= 68.5)
+```
+
+```{r}
+pnorm(69.5, mean(x), sd(x)) - pnorm(68.5, mean(x), sd(x))
+```
+
+```{r}
+mean(x <= 70.5) - mean(x <= 69.5)
+```
+
+```{r}
+pnorm(70.5, mean(x), sd(x)) - pnorm(69.5, mean(x), sd(x))
+```
+
+# Assessment
+
+What proportion of the data is between 69 and 72 inches (taller than 69 but shorter or equal to 72)? A proportion is between 0 and 1. Use the mean function in your code. Remember that you can use mean to compute the proportion of entries of a logical vector that are TRUE.
+
+```{r}
+x <- heights$height[heights$sex == "Male"]
+mean(x > 69 & x <= 72)
+```
+
+Given a normal distribution with a mean mu and standard deviation sigma, you can calculate the proportion of observations less than or equal to a certain value with pnorm(value, mu, sigma). Notice that this is the CDF for the normal distribution. We will learn much more about pnorm later in the course series, but you can also learn more now with ?pnorm. Use the normal approximation to estimate the proportion the proportion of the data that is between 69 and 72 inches.
+
+```{r}
+pnorm(72, mean(x), sd(x)) - pnorm(69, mean(x), sd(x))
+```
+
+However, the approximation is not always useful. An example is for the more extreme values, often called the "tails" of the distribution. Let's look at an example. We can compute the proportion of heights between 79 and 81.
+
+```{r}
+mean(x > 79 & x <= 81)
+```
+
+Use normal approximation to estimate the proportion of heights between 79 and 81 inches and save it in an object called approx. Report how many times bigger the actual proportion is compared to the approximation.
+
+```{r}
+approx <- pnorm(81, mean(x), sd(x)) - pnorm(79, mean(x), sd(x))
+mean(x > 79 & x <= 81) / approx
+```
+
+Assume that the distribution of adult men in the world as normally distributed with an average of 69 inches and a standard deviation of 3 inches. Using the normal approximation, estimate the proportion of adult men that are taller than 7 feet, referred to as seven footers. Remember that 1 foot equals 12 inches. Use the pnorm function. Note that pnorm finds the proportion less than or equal to a given value, but you are asked to find the proportion greater than that value.
+
+```{r}
+1 - pnorm(84, 69, 3)
+```
+
+Now we have an approximation for the proportion, call it p, of men that are 7 feet tall or taller. We know that there are about 1 billion men between the ages of 18 and 40 in the world, the age range for the NBA. Can we use the normal distribution to estimate how many of these 1 billion men are at least seven feet tall?
+
+```{r}
+p <- 1 - pnorm(84, 69, 3)
+round(p*10^9, 0)
+```
+
+There are about 10 National Basketball Association (NBA) players that are 7 feet tall or higher. Use your answer to exercise 4 to estimate the proportion of men that are seven feet tall or taller in the world and store that value as p. Use your answer to the previous exercise (exercise 5) to round the number of 18-40 year old men who are seven feet tall or taller to the nearest integer and store that value as N. Then calculate the proportion of the world's 18 to 40 year old seven footers that are in the NBA. (Do not store this value in an object.)
+
+```{r}
+p <- 1 - pnorm(84, 69, 3)
+N <- round(p*10^9, 0)
+10/N
+```
+
+Repeat the calculations performed in the previous question for Lebron James' height: 6 feet 8 inches. There are about 150 players, instead of 10, that are at least that tall in the NBA. Report the estimated proportion of people at least Lebron's height that are in the NBA.
+
+```{r}
+p <- 1 - pnorm(80, 69, 3)
+N <- round(p*10^9, 0)
+150/N
+```
+
+# Quantiles, Percentiles and Boxplots
+
+Quantiles are cutoff points that divide a dataset into intervals with set probabilities. The qth quantile is the value at which % of the observations are equal to or less than that value. Given a dataset data and desired quantile q, you can find the qth quantile of data with:
+
+```{r}
+#quantile(data,q)
+```
+
+Percentiles are the quantiles that divide a dataset into 100 intervals each with 1% probability. You can determine all percentiles of a dataset data like this:
+
+```{r}
+# p <- seq(0.01, 0.99, 0.01)
+# quantile(data, p)
+```
+
+Quartiles divide a dataset into 4 parts each with 25% probability. They are equal to the 25th, 50th and 75th percentiles. The 25th percentile is also known as the 1st quartile, the 50th percentile is also known as the median, and the 75th percentile is also known as the 3rd quartile.
+
+The summary() function returns the minimum, quartiles and maximum of a vector.
+
+```{r}
+summary(heights$height)
+```
+
+```{r}
+p <- seq(0.01, 0.99, 0.01)
+percentiles <- quantile(heights$height, p)
+```
+
+Confirm that the 25th and 75th percentiles match the 1st and 3rd quartiles. Note that quantile() returns a named vector. You can access the 25th and 75th percentiles like this (adapt the code for other percentile values):
+
+```{r}
+percentiles[names(percentiles) == "25%"]
+```
+
+```{r}
+percentiles[names(percentiles) == "75%"]
+```
+
+The qnorm() function gives the theoretical value of a quantile with probability p of observing a value equal to or less than that quantile value given a normal distribution with mean mu and standard deviation sigma:
+
+qnorm(p, mu, sigma)
+
+By default, mu=0 and sigma=1. Therefore, calling qnorm() with no arguments gives quantiles for the standard normal distribution.
+
+qnorm(p)
+
+Recall that quantiles are defined such that p is the probability of a random observation less than or equal to the quantile.
+
+```{r}
+pnorm(-1.96)
+```
+
+```{r}
+qnorm(0.025)
+```
+
+qnorm() and pnorm() are inverse functions, therefore they cancel each other
+
+```{r}
+pnorm(qnorm(0.025))
+```
+
+You can use qnorm() to determine the theoretical quantiles of a dataset: that is, the theoretical value of quantiles assuming that a dataset follows a normal distribution. Run the qnorm() function with the desired probabilities p, mean mu and standard deviation sigma. Suppose male heights follow a normal distribution with a mean of 69 inches and standard deviation of 3 inches. The theoretical quantiles are:
+
+```{r}
+p <- seq(0.01, 0.99, 0.01)
+theoretical_quantiles <- qnorm(p, 69, 3)
+hist(theoretical_quantiles)
+```
+
+# Quantile-Quantile Plots
+
+```{r}
+mean(x <= 69.5)
+```
+
+```{r}
+p <- seq(0.05, 0.95, 0.05)
+observed_quantiles <- quantile(x, p)
+theoretical_quantiles <- qnorm(p, mean = mean(x), sd = sd(x))
+plot(theoretical_quantiles, observed_quantiles); abline(0,1)
+```
+
+We can do the same after normalizing the values of x
+
+```{r}
+z <- scale(x)
+observed_quantiles <- quantile(z, p)
+theoretical_quantiles <- qnorm(p)
+plot(theoretical_quantiles, observed_quantiles); abline(0,1)
+```
+
+```{r}
+library(rafalib)
+mypar(1,2)
+murder_rate <- murders$total/murders$population*100000
+hist(murder_rate)
+qqnorm(murder_rate); qqline(murder_rate)
+```
+
+Provide a 5-number summary with the boxplot
+
+```{r}
+boxplot(murder_rate)
+```
+
+```{r}
+boxplot(heights$height ~ heights$sex)
+```
+
+# Assessment
+
+When analyzing data it's often important to know the number of measurements you have for each category. Define a variable male that contains the male heights. Define a variable female that contains the female heights. Report the length of each variable.
+
+```{r}
+male <- heights$sex[heights$sex == "Male"]
+female <- heights$sex[heights$sex == "Female"]
+c(male = length(male), female = length(female))
+```
+
+Suppose we can't make a plot and want to compare the distributions side by side. If the number of data points is large, listing all the numbers is inpractical. A more practical approach is to look at the percentiles. We can obtain percentiles using the quantile function like this
+
+```{r}
+quantile(heights$height, seq(.01, 0.99, 0.01))
+```
+
+Create two five row vectors showing the 10th, 30th, 50th, 70th, and 90th percentiles for the heights of each sex called these vectors female_percentiles and male_percentiles.
+
+```{r}
+male <- heights$height[heights$sex=="Male"]
+female <- heights$height[heights$sex=="Female"]
+male_percentile <- quantile(male, seq(0.1, 0.9, 0.2))
+female_percentile <- quantile(female, seq(0.1, 0.9, 0.2))
+```
+
+Then create a data frame called df with these two vectors as columns. The column names should be female and male and should appear in that order.
+
+```{r}
+df <- data.frame(female = female_percentile, male = male_percentile)
+df
+```
+
+# Exploratory Data Analysis (EDA)
+
+```{r}
+mypar(1,2)
+female <- heights$height[heights$sex == "Female"]
+hist(female)
+qqnorm(female); qqline(female)
+```
+
+# Assessment
+
+For this chapter, we will use height data collected by Francis Galton for his genetics studies. Here we just use height of the children in the dataset
+
+```{r}
+library(HistData)
+data("Galton")
+head(Galton)
+```
+
+Compute the mean and median of children
+
+```{r}
+x <- Galton$child
+mean(x)
+```
+
+```{r}
+median(x)
+```
+
+Now for the same data compute the standard deviation and the median absolute deviation (MAD).
+
+```{r}
+sd(x)
+```
+
+```{r}
+mad(x)
+```
+
+In the previous exercises we saw that the mean and median are very similar and so are the standard deviation and MAD. This is expected since the data is approximated by a normal distribution which has this property. Now suppose that Galton made a mistake when entering the first value, forgetting to use the decimal point. You can imitate this error by typing:
+
+```{r}
+x <- Galton$child
+x_with_error <- x
+x_with_error[1] <- x_with_error[1]*10
+```
+
+The data now has an outlier that the normal approximation does not account for. Let's see how this affects the average. Report how many inches the average grows after this mistake. Specifically, report the difference between the average of the data with the mistake x_with_error and the data without the mistake x.
+
+```{r}
+mean(x_with_error) - mean(x)
+```
+
+In the previous exercise we saw how a simple mistake in 1 out of over 900 observations can result in the average of our data increasing more than half an inch, which is a large difference in practical terms. Now let's explore the effect this outlier has on the standard deviation. Report how many inches the SD grows after this mistake. Specifically, report the difference between the SD of the data with the mistake x_with_error and the data without the mistake x.
+
+```{r}
+sd(x_with_error) - sd(x)
+```
+
+In the previous exercises we saw how one mistake can have a substantial effect on the average and the standard deviation. Now we are going to see how the median and MAD are much more resistant to outliers. For this reason we say that they are robust summaries. Report how many inches the median grows after the mistake. Specifically, report the difference between the median of the data with the mistake x_with_error and the data without the mistake x.
+
+```{r}
+median(x_with_error) - median(x)
+```
+
+Report how many inches the MAD grows after the mistake. Specifically, report the difference between the MAD of the data with the mistake x_with_error and the data without the mistake x.
+
+```{r}
+mad(x_with_error) - mad(x)
+```
+
+We have seen how the average can be affected by outliers. But how large can this effect get? This of course depends on the size of the outlier and the size of the dataset. To see how outliers can affect the average of a dataset, let's write a simple function that takes the size of the outlier as input and returns the average. Write a function called error_avg that takes a value k and returns the average of the vector x after the first entry changed to k. Show the results for k=10000 and k=-10000.
+
+```{r}
+x <- Galton$child
+error_avg <- function(k){
+    x[1] <- k
+    mean(x)
+}
+error_avg(10000)
+error_avg(-10000)
+```

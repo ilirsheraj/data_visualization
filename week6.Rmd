@@ -1,0 +1,284 @@
+---
+title: "week6"
+author: "Ilir_Sheraj"
+date: "8/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Assessment Part 1: Properties of Stars
+
+Astronomy is one of the oldest data-driven sciences. In the late 1800s, the director of the Harvard College Observatory hired women to analyze astronomical data, which at the time was done using photographic glass plates. These women became known as the “Harvard Computers”. They computed the position and luminosity of various astronomical objects such as stars and galaxies. (If you are interested, you can learn more about the Harvard Computers External link). Today, astronomy is even more of a data-driven science, with an inordinate amount of data being produced by modern instruments every day. In the following exercises we will analyze some actual astronomical data to inspect properties of stars, their absolute magnitude (which relates to a star's luminosity, or brightness), temperature and type (spectral class).
+
+```{r}
+library(tidyverse)
+library(dslabs)
+data(stars)
+options(digits = 3)
+```
+
+Load the stars data frame from dslabs. This contains the name, absolute magnitude, temperature in degrees Kelvin, and spectral class of selected stars. Absolute magnitude (shortened in these problems to simply "magnitude") is a function of star luminosity, where negative values of magnitude have higher luminosity.
+
+```{r}
+data("stars")
+head(stars)
+```
+
+What is the mean and standard deviation of magnitude?
+
+```{r}
+stars %>% filter(!is.na(magnitude)) %>% 
+  summarize(mean = mean(magnitude), std = sd(magnitude))
+```
+
+Make a density plot of the magnitude. How many peaks are there in the data?
+
+```{r}
+stars %>% ggplot(aes(magnitude)) + 
+  geom_density()
+```
+
+Make a scatter plot of the data with temperature on the x-axis and magnitude on the y-axis and examine the relationship between the variables. Recall that lower magnitude means a more luminous (brighter) star. When considering the plot of magnitude vs. temperature, most stars follow a _______________ trend. These are called main sequence stars.
+Answer: Decreasing Exponential
+
+```{r}
+stars %>% ggplot(aes(temp, magnitude)) +
+  geom_point()
+```
+
+For various reasons, scientists do not always follow straight conventions when making plots, and astronomers usually transform values of star luminosity and temperature before plotting. Flip the y-axis so that lower values of magnitude are at the top of the axis (recall that more luminous stars have lower magnitude) using scale_y_reverse(). Take the log base 10 of temperature and then also flip the x-axis. Fill in the blanks in the statements below to describe the resulting plot:
+
+The brighest, highest temperature stars are in the ______________ corner of the plot.
+
+```{r}
+stars %>% ggplot(aes(log10(temp), magnitude)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_x_reverse()
+```
+
+```{r}
+library(ggrepel)
+stars %>%
+  ggplot(aes(log10(temp), magnitude, col=type, label = star)) +
+  geom_point() +
+  scale_x_reverse() +
+  scale_y_reverse() +
+  geom_text_repel()
+```
+
+# Assessment Part 2: Climate Change
+
+The planet's surface temperature is increasing as greenhouse gas emissions increase, and this global warming and carbon cycle disruption is wreaking havoc on natural systems. Living systems that depend on current temperature, weather, currents and carbon balance are jeopardized, and human society will be forced to contend with widespread economic, social, political and environmental damage as the temperature continues to rise. In these exercises, we examine the relationship between global temperature changes, greenhouse gases and human carbon emissions using time series of actual atmospheric and ice core measurements from the National Oceanic and Atmospheric Administration (NOAA) and Carbon Dioxide Information Analysis Center (CDIAC).
+
+```{r}
+data(temp_carbon)
+data(greenhouse_gases)
+data(historic_co2)
+```
+
+```{r}
+head(temp_carbon)
+```
+
+```{r}
+head(greenhouse_gases)
+```
+
+```{r}
+head(historic_co2)
+```
+
+Load the temp_carbon dataset from dslabs, which contains annual global temperature anomalies (difference from 20th century mean temperature in degrees Celsius), temperature anomalies over the land and ocean, and global carbon emissions (in metric tons). Note that the date ranges differ for temperature and carbon emissions. Which of these code blocks return the latest year for which carbon emissions are reported?
+
+```{r}
+temp_carbon %>%
+    filter(!is.na(carbon_emissions)) %>%
+    .$year %>%
+    max()
+```
+
+```{r}
+temp_carbon %>% .$year %>% max()
+```
+
+```{r}
+ temp_carbon %>%
+    filter(!is.na(carbon_emissions)) %>%
+    pull(year) %>%
+    max()
+```
+
+Inspect the difference in carbon emissions in temp_carbon from the first available year to the last available year.
+
+```{r}
+temp_carbon %>% ggplot(aes(year, carbon_emissions)) +
+  geom_line()
+```
+
+What is the first year for which carbon emissions (carbon_emissions) data are available?
+
+```{r}
+temp_carbon %>% filter(!is.na(carbon_emissions)) %>% 
+  select(year) %>% min()
+```
+
+What is the last year for which carbon emissions data are available?
+
+```{r}
+temp_carbon %>% filter(!is.na(carbon_emissions)) %>% 
+  select(year) %>% max()
+```
+
+How many times larger were carbon emissions in the last year relative to the first year?
+
+```{r}
+carbon1 <- temp_carbon %>%
+    filter(year == 1751) %>%
+    .$carbon_emissions
+
+carbon2 <- temp_carbon %>%
+    filter(year == 2014) %>%
+    .$carbon_emissions
+
+carbon2/carbon1
+```
+
+Inspect the difference in temperature in temp_carbon from the first available year to the last available year. What is the first year for which global temperature anomaly (temp_anomaly) data are available?
+
+```{r}
+temp_carbon %>% filter(!is.na(temp_anomaly)) %>% 
+  select(year) %>% min()
+```
+
+What is the last year for which global temperature anomaly data are available?
+
+```{r}
+temp_carbon %>% filter(!is.na(temp_anomaly)) %>% 
+  select(year) %>% max()
+```
+
+How many degrees Celsius has temperature increased over the date range? Compare the temperatures in the most recent year versus the oldest year.
+
+```{r}
+temp1 <- temp_carbon %>% filter(year == 1880) %>% 
+  .$temp_anomaly
+
+temp2 <- temp_carbon %>% filter(year == 2018) %>% 
+  .$temp_anomaly
+
+temp2 - temp1
+```
+
+Create a time series line plot of the temperature anomaly. Only include years where temperatures are reported. Save this plot to the object p.
+
+```{r}
+p <- temp_carbon %>% filter(!is.na(temp_anomaly)) %>% 
+  ggplot(aes(year, temp_anomaly)) +
+  geom_line()
+p
+```
+
+```{r}
+p <- p + geom_hline(aes(yintercept = 0), col = "blue")
+p
+```
+
+Continue working with p, the plot created in the previous question. Change the y-axis label to be "Temperature anomaly (degrees C)". Add a title, "Temperature anomaly relative to 20th century mean, 1880-2018". Also add a text layer to the plot: the x-coordinate should be 2000, the y-coordinate should be 0.05, the text should be "20th century mean", and the text color should be blue.
+
+```{r}
+p + ggtitle("Temperature anomaly relative to 20th century mean, 1880-2018") +
+  ylab("Temperature anomaly (degrees C)") +
+  annotate(geom="text", x=2000, y=0.05, label= "20th century mean", color="blue")
+```
+
+Another way to draw the same graph 
+
+```{r}
+ p + ylab("Temperature anomaly (degrees C)") +
+    ggtitle("Temperature anomaly relative to 20th century mean, 1880-2018") +
+    geom_text(aes(x = 2000, y = 0.05, label = "20th century mean"), col = "blue")
+```
+
+Add layers to the previous plot to include line graphs of the temperature anomaly in the ocean (ocean_anomaly) and on land (land_anomaly). Assign different colors to the lines. Compare the global temperature anomaly to the land temperature anomaly and ocean temperature anomaly.
+
+```{r}
+temp_carbon %>%
+  filter(year %in% c(1880:2020)) %>%
+  ggplot() +
+  geom_line(aes(year,temp_anomaly)) +
+  geom_line(aes(year,ocean_anomaly),col="blue") +
+  geom_line(aes(year,land_anomaly), col="brown") +
+  geom_hline(yintercept = 0, col="black",alpha=0.5) +
+  geom_vline(xintercept = 2018, col="black",alpha=0.5)
+```
+
+A major determinant of Earth's temperature is the greenhouse effect. Many gases trap heat and reflect it towards the surface, preventing heat from escaping the atmosphere. The greenhouse effect is vital in keeping Earth at a warm enough temperature to sustain liquid water and life; however, changes in greenhouse gas levels can alter the temperature balance of the planet. The greenhouse_gases data frame from dslabs contains concentrations of the three most significant greenhouse gases: carbon dioxide, abbreviated in the data as co2, methane (ch4 in the data), and nitrous oxide (n2o in the data). Measurements are provided every 20 years for the past 2000 years. Complete the code outline below to make a line plot of concentration on the y-axis by year on the x-axis. Facet by gas, aligning the plots vertically so as to ease comparisons along the year axis. Add a vertical line with an x-intercept at the year 1850, noting the unofficial start of the industrial revolution and widespread fossil fuel consumption. Note that the units for ch4 and n2o are ppb while the units for co2 are ppm.
+
+```{r}
+greenhouse_gases %>%
+    ggplot(aes(year, concentration)) +
+    geom_line() +
+    facet_grid(gas ~., scales = "free") +
+    geom_vline(xintercept = 1850) +
+    ylab("Concentration (ch4/n2o ppb, co2 ppm)") +
+    ggtitle("Atmospheric greenhouse gas concentration by year, 0-2000")
+```
+
+While many aspects of climate are independent of human influence, and co2 levels can change without human intervention, climate models cannot reconstruct current conditions without incorporating the effect of manmade carbon emissions. These emissions consist of greenhouse gases and are mainly the result of burning fossil fuels such as oil, coal and natural gas. Make a time series line plot of carbon emissions (carbon_emissions) from the temp_carbon dataset. The y-axis is metric tons of carbon emitted per year.
+
+```{r}
+temp_carbon %>% filter(!is.na(carbon_emissions)) %>% 
+  ggplot(aes(year, carbon_emissions)) +
+  geom_line() +
+  geom_vline(xintercept = 1850) +
+  ylab("Carbon emissions (metric tons)") +
+  ggtitle("Annual global carbon emissions, 1751-2014")
+```
+
+
+```{r}
+temp_carbon %>% filter(!is.na(carbon_emissions)) %>% 
+  ggplot(aes(year, carbon_emissions)) +
+  geom_line() +
+  geom_vline(xintercept = 1850) +
+  scale_y_log10() +
+  ylab("Carbon emissions (metric tons)") +
+  ggtitle("Annual global carbon emissions, 1751-2014")
+```
+
+We saw how greenhouse gases have changed over the course of human history, but how has Carbon dioxide (co2 in the data) varied over a longer time scale? The historic_co2 data frame in dslabs contains direct measurements of atmospheric co2 from Mauna Loa since 1959 as well as indirect measurements of atmospheric co2 from ice cores dating back 800,000 years. Make a line plot of co2 concentration over time (year), coloring by the measurement source (source). Save this plot as co2_time for later use.
+
+```{r}
+co2_time <- historic_co2 %>% ggplot(aes(year, co2, color = source)) +
+  geom_line()
+co2_time
+```
+
+Use the co2_time plot saved above. Change the limits as directed to investigate the rate of change in co2 over various periods with spikes in co2 concentration. Change the x-axis limits to -800,000 and -775,000. About how many years did it take for co2 to rise from 200 ppmv to its peak near 275 ppmv?
+
+```{r}
+co2_time + xlim(c(-800000, -775000))
+```
+
+Change the x-axis limits to -375,000 and -330,000. About how many years did it take for co2 to rise from the minimum of 180 ppm to its peak of 300 ppmv?
+
+```{r}
+co2_time + xlim(c(-375000, -330000))
+```
+
+Change the x-axis limits to -140,000 and -120,000. About how many years did it take for co2 to rise from 200 ppmv to its peak near 280 ppmv?
+
+```{r}
+co2_time + xlim(c(-140000, -120000))
+```
+
+Change the x-axis limits to -3000 and 2018 to investigate modern changes in co2. About how many years did it take for co2 to rise from its stable level around 275 ppmv to the current level of over 400 ppmv?
+
+```{r}
+co2_time + xlim(c(-3000, 2018))
+```
+

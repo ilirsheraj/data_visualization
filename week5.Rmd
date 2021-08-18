@@ -1,0 +1,367 @@
+---
+title: "week5"
+author: "Ilir_Sheraj"
+date: "8/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Show the Data
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(dslabs)
+data("heights")
+```
+
+```{r}
+heights %>% ggplot(aes(sex, height)) + geom_point()
+```
+
+Improve the plot further by adding jitter
+
+```{r}
+# alpha blending makes the points transparent: more points in same position, the darker
+heights %>% ggplot(aes(sex, height)) + geom_jitter(width = 0.1, alpha = 0.2)
+```
+
+# Compared Visual Cues Should Be Adjacent
+
+```{r}
+color_blind_friendly_cols <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+```{r}
+p1 <- data.frame(x = 1:8, y = 1:8, col = as.character(1:8)) %>%
+    ggplot(aes(x, y, color = col)) +
+    geom_point(size = 5)
+p1
+```
+
+```{r}
+p1 + scale_color_manual(values = color_blind_friendly_cols)
+```
+
+# Assessment
+
+To make the plot on the right in the exercise from the last set of assessments, we had to reorder the levels of the states’ variables. Redefine the state object so that the levels are re-ordered by rate. Print the new object state and its levels (using levels) so you can see that the vector is now re-ordered by the levels.
+
+```{r}
+dat <- us_contagious_diseases %>%
+  filter(year == 1967 & disease=="Measles" & !is.na(population)) %>% 
+  mutate(rate = count / population * 10000 * 52 / weeks_reporting)
+state <- dat$state 
+rate <- dat$count/(dat$population/10000)*(52/dat$weeks_reporting)
+state <- reorder(state, rate, FUN = mean)
+levels(state)
+```
+
+```{r}
+data(us_contagious_diseases)
+dat <- us_contagious_diseases %>% filter(year == 1967 & disease=="Measles" & count>0 & !is.na(population)) %>%
+  mutate(rate = count / population * 10000 * 52 / weeks_reporting) %>%
+  mutate(state = reorder(state, rate))
+dat %>% ggplot(aes(state, rate)) +
+  geom_bar(stat="identity") +
+  coord_flip()
+```
+
+```{r}
+data("murders")
+murders %>% mutate(rate = total/population*100000) %>%
+  group_by(region) %>%
+  summarize(avg = mean(rate)) %>%
+  mutate(region = factor(region)) %>%
+  ggplot(aes(region, avg)) +
+  geom_bar(stat="identity") +
+  ylab("Murder Rate Average")
+```
+
+```{r}
+data("murders")
+murders %>% mutate(rate = total/population*100000) %>%
+  mutate(region = reorder(region, rate, FUN = median)) %>% 
+  ggplot(aes(region, rate)) + 
+  geom_boxplot() + 
+  geom_point()
+```
+
+
+# Slope Charts
+
+```{r}
+data(gapminder)
+west <- c("Western Europe", "Northern Europe", "Southern Europe", "Northern America", "Australia and New Zealand")
+dat <- gapminder %>%
+    filter(year %in% c(2010, 2015) & region %in% west & !is.na(life_expectancy) & population > 10^7)
+
+dat %>%
+    mutate(location = ifelse(year == 2010, 1, 2),
+           location = ifelse(year == 2015 & country %in% c("United Kingdom", "Portugal"),
+                             location + 0.22, location),
+           hjust = ifelse(year == 2010, 1, 0)) %>%
+    mutate(year = as.factor(year)) %>%
+    ggplot(aes(year, life_expectancy, group = country)) +
+    geom_line(aes(color = country), show.legend = FALSE) +
+    geom_text(aes(x = location, label = country, hjust = hjust), show.legend = FALSE) +
+    xlab("") +
+    ylab("Life Expectancy") 
+```
+
+Blend-Altman Plot
+
+```{r}
+library(ggrepel)
+library(tidyverse)
+dat %>%
+    mutate(year = paste0("life_expectancy_", year)) %>%
+    select(country, year, life_expectancy) %>% spread(year, life_expectancy) %>%
+    mutate(average = (life_expectancy_2015 + life_expectancy_2010)/2,
+                difference = life_expectancy_2015 - life_expectancy_2010) %>%
+    ggplot(aes(average, difference, label = country)) +
+    geom_point() +
+    geom_text_repel() +
+    geom_abline(lty = 2) +
+    xlab("Average of 2010 and 2015") +
+    ylab("Difference between 2015 and 2010")
+```
+
+```{r}
+library(dslabs)
+data(us_contagious_diseases)
+str(us_contagious_diseases)
+```
+
+Assign dat to the per 10,000 rate of measles, removing Alaska and Hawaii and adjusting for weeks reporting
+
+```{r}
+the_disease <- "Measles"
+dat <- us_contagious_diseases %>%
+    filter(!state %in% c("Hawaii", "Alaska") & disease == the_disease) %>%
+    mutate(rate = count / population * 10000 * 52/weeks_reporting) %>%
+    mutate(state = reorder(state, rate))
+```
+
+California
+
+```{r}
+dat %>% filter(state == "California" & !is.na(rate)) %>%
+    ggplot(aes(year, rate)) +
+    geom_line() +
+    ylab("Cases per 10,000") +
+    geom_vline(xintercept=1963, col = "blue")
+```
+
+```{r}
+dat %>% ggplot(aes(year, state, fill=rate)) +
+    geom_tile(color = "grey50") +
+    scale_x_continuous(expand = c(0,0)) +
+    scale_fill_gradientn(colors = RColorBrewer::brewer.pal(9, "Reds"), trans = "sqrt") +
+    geom_vline(xintercept = 1963, col = "blue") +
+    theme_minimal() + theme(panel.grid = element_blank()) +
+    ggtitle(the_disease) +
+    ylab("") +
+    xlab("")
+```
+
+```{r}
+# compute US average measles rate by year
+avg <- us_contagious_diseases %>%
+    filter(disease == the_disease) %>% group_by(year) %>%
+    summarize(us_rate = sum(count, na.rm = TRUE)/sum(population, na.rm = TRUE)*10000)
+
+# make line plot of measles rate by year by state
+dat %>%
+    filter(!is.na(rate)) %>%
+    ggplot() +
+    geom_line(aes(year, rate, group = state), color = "grey50", 
+        show.legend = FALSE, alpha = 0.2, size = 1) +
+    geom_line(mapping = aes(year, us_rate), data = avg, size = 1, col = "black") +
+    scale_y_continuous(trans = "sqrt", breaks = c(5, 25, 125, 300)) +
+    ggtitle("Measles Cases per 10,000 by state") +
+    xlab("") +
+    ylab("") +
+    geom_text(data = data.frame(x = 1955, y = 50),
+        mapping = aes(x, y, label = "US average"), color = "black") +
+    geom_vline(xintercept = 1963, col = "blue")
+```
+
+# Assessment
+
+The sample code given creates a tile plot showing the rate of measles cases per population. We are going to modify the tile plot to look at smallpox cases instead.
+
+```{r}
+library(RColorBrewer)
+the_disease = "Smallpox"
+dat <- us_contagious_diseases %>% 
+   filter(!state%in%c("Hawaii","Alaska") & disease == the_disease & weeks_reporting >= 10) %>% 
+   mutate(rate = count / population * 10000) %>% 
+   mutate(state = reorder(state, rate))
+
+dat %>% ggplot(aes(year, state, fill = rate)) + 
+  geom_tile(color = "grey50") + 
+  scale_x_continuous(expand=c(0,0)) + 
+  scale_fill_gradientn(colors = brewer.pal(9, "Reds"), trans = "sqrt") + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank()) + 
+  ggtitle(the_disease) + 
+  ylab("") + 
+  xlab("")
+```
+
+```{r}
+data(us_contagious_diseases)
+the_disease = "Smallpox"
+dat <- us_contagious_diseases %>%
+   filter(!state%in%c("Hawaii","Alaska") & disease == the_disease & weeks_reporting >= 10) %>%
+   mutate(rate = count / population * 10000) %>%
+   mutate(state = reorder(state, rate))
+avg <- us_contagious_diseases %>%
+  filter(disease==the_disease) %>% group_by(year) %>%
+  summarize(us_rate = sum(count, na.rm=TRUE)/sum(population, na.rm=TRUE)*10000)
+dat %>% ggplot() +
+  geom_line(aes(year, rate, group = state),  color = "grey50", 
+            show.legend = FALSE, alpha = 0.2, size = 1) +
+  geom_line(mapping = aes(year, us_rate),  data = avg, size = 1, color = "black") +
+  scale_y_continuous(trans = "sqrt", breaks = c(5,25,125,300)) + 
+  ggtitle("Smallpox Cases per 10,000 by state") + 
+  xlab("") + 
+  ylab("") +
+  geom_text(data = data.frame(x=1955, y=50), mapping = aes(x, y, label="US average"), color="black") + 
+  geom_vline(xintercept=1940, col = "blue")
+```
+
+```{r}
+us_contagious_diseases %>% filter(state=="California" & weeks_reporting >= 10) %>% 
+  group_by(year, disease) %>%
+  summarize(rate = sum(count)/sum(population)*10000) %>%
+  ggplot(aes(year, rate, color = disease)) + 
+  geom_line()
+```
+
+```{r}
+data(us_contagious_diseases)
+us_contagious_diseases %>% filter(!is.na(population)) %>% 
+  group_by(year, disease) %>%
+  summarize(rate = sum(count)/sum(population)*10000) %>%
+  ggplot(aes(year, rate, color = disease)) + 
+  geom_line()
+```
+
+# Final Assessment
+
+The Titanic was a British ocean liner that struck an iceberg and sunk on its maiden voyage in 1912 from the United Kingdom to New York. More than 1,500 of the estimated 2,224 passengers and crew died in the accident, making this one of the largest maritime disasters ever outside of war. The ship carried a wide range of passengers of all ages and both genders, from luxury travelers in first-class to immigrants in the lower classes. However, not all passengers were equally likely to survive the accident. We use real data about a selection of 891 passengers to learn who was on the Titanic and which passengers were more likely to survive.
+
+```{r}
+options(digits = 3)    # report 3 significant digits
+library(tidyverse)
+library(titanic)
+
+titanic <- titanic_train %>%
+    select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
+    mutate(Survived = factor(Survived),
+           Pclass = factor(Pclass),
+           Sex = factor(Sex))
+```
+
+```{r}
+str(titanic)
+```
+
+Make density plots of age grouped by sex. Try experimenting with combinations of faceting, alpha blending, stacking and using variable counts on the y-axis to answer the following questions. Some questions may be easier to answer with different versions of the density plot.
+
+```{r}
+titanic %>% ggplot(aes(Age, fill = Sex)) +
+  geom_density(alpha = 0.2)
+```
+
+```{r}
+titanic %>% ggplot(aes(x = Age, y = ..count.., fill = Sex)) +
+  geom_density(alpha = 0.2)
+```
+
+
+```{r}
+titanic %>% ggplot(aes(Age, fill = Sex)) +
+  geom_density() +
+  facet_grid(Sex~.)
+```
+
+```{r}
+titanic %>% ggplot(aes(Age, fill = Sex)) +
+  geom_density(alpha = 0.2, bw = 0.9, position = "stack")
+```
+
+```{r}
+titanic %>% select(Sex) %>% table()
+```
+
+Use geom_qq() to make a QQ-plot of passenger age and add an identity line with geom_abline(). Filter out any individuals with an age of NA first. Use the following object as the dparams argument in geom_qq():
+
+```{r}
+params <- titanic %>%
+    filter(!is.na(Age)) %>%
+    summarize(mean = mean(Age), sd = sd(Age))
+
+titanic %>% filter(!is.na(Age)) %>% 
+  ggplot(aes(sample = Age)) +
+  geom_qq(dparams = params) +
+  geom_qq_line(dparams = params)
+```
+
+To answer the following questions, make barplots of the Survived and Sex variables using geom_bar(). Try plotting one variable and filling by the other variable. You may want to try the default plot, then try adding position = position_dodge() to geom_bar() to make separate bars for each group.
+
+
+```{r}
+titanic %>% ggplot(aes(Survived, fill = Sex)) +
+  geom_bar(position = "dodge")
+```
+
+```{r}
+titanic %>% select(Survived) %>% table()
+```
+
+Make a density plot of age filled by survival status. Change the y-axis to count and set alpha = 0.2. Which age group is the only group more likely to survive than die?
+
+```{r}
+titanic %>% ggplot(aes(x = Age, y = ..count.., fill = Survived)) +
+  geom_density(alpha = 0.2)
+```
+
+Filter the data to remove individuals who paid a fare of 0. Make a boxplot of fare grouped by survival status. Try a log2 transformation of fares. Add the data points with jitter and alpha blending.
+
+```{r}
+titanic %>% filter(Fare > 0) %>% ggplot(aes(Survived, Fare)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.2) +
+  scale_y_continuous(trans = "log2")
+```
+
+The Pclass variable corresponds to the passenger class. Make three barplots. For the first, make a basic barplot of passenger class filled by survival. For the second, make the same barplot but use the argument position = position_fill() to show relative proportions in each group instead of counts. For the third, make a barplot of survival filled by passenger class using position = position_fill()
+
+```{r}
+titanic %>% ggplot(aes(Pclass, fill = Survived)) +
+  geom_bar()
+```
+
+```{r}
+titanic %>% ggplot(aes(Pclass, fill = Survived)) +
+  geom_bar(position = position_fill())
+```
+
+```{r}
+titanic %>% ggplot(aes(Survived, fill = Pclass)) +
+  geom_bar(position = position_fill())
+```
+
+Create a grid of density plots for age, filled by survival status, with count on the y-axis, faceted by sex and passenger class.
+
+```{r}
+titanic %>% ggplot(aes(x = Age, y = ..count.., fill = Survived)) +
+  geom_density() +
+  facet_grid(Sex ~ Pclass)
+```
